@@ -1,23 +1,21 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from '../src/app.module';
 import serverless from 'serverless-http';
-import { Application } from 'express';
+import { Application, Request, Response } from 'express';
 
-let serverlessHandler: (event: any, context: any) => Promise<any>;
+let serverlessHandler: ReturnType<typeof serverless> | null = null;
 
-async function bootstrap(): Promise<
-  (event: any, context: any) => Promise<any>
-> {
+async function bootstrap(): Promise<ReturnType<typeof serverless>> {
   const app = await NestFactory.create(AppModule);
   await app.init();
-  // ここで明示的に型キャストして、型安全にする
   const expressApp = app.getHttpAdapter().getInstance() as Application;
   return serverless(expressApp);
 }
 
-export const handler = async (event: any, context: any): Promise<any> => {
+// default exportされた関数として定義する
+export default async function handler(req: Request, res: Response) {
   if (!serverlessHandler) {
     serverlessHandler = await bootstrap();
   }
-  return serverlessHandler(event, context);
-};
+  return serverlessHandler(req, res);
+}
